@@ -91,6 +91,32 @@ class BookServiceTest {
     }
 
     @Test
+    @DisplayName("Devrait gérer le cas où le titre est null")
+    void testGetBookByTitle_Null() throws Exception {
+        // Arrange
+        when(bookRepository.findByTitle(null)).thenReturn(Optional.empty());
+
+        // Act
+        Book result = bookService.getBookByTitle(null);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("Devrait gérer le cas où le titre est vide")
+    void testGetBookByTitle_Empty() throws Exception {
+        // Arrange
+        when(bookRepository.findByTitle("")).thenReturn(Optional.empty());
+
+        // Act
+        Book result = bookService.getBookByTitle("");
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
     @DisplayName("Devrait retourner null si livre non trouvé")
     void testGetBookById_NotFound() throws Exception {
         // Arrange

@@ -90,7 +90,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>${jacoco.version}</version>
+				<version>0.8.10</version>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
@@ -105,7 +105,43 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
+					<!-- NOUVEAU : Vérification de la couverture minimale -->
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>PACKAGE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.75</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
 				</executions>
+				<configuration>
+					<excludes>
+						<!-- Exclure les entités (juste des getters/setters) -->
+						<exclude>**/entity/**</exclude>
+						<!-- Exclure la classe principale -->
+						<exclude>**/DemoApplication.class</exclude>
+						<!-- Exclure les configurations -->
+						<exclude>**/config/**</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 
 			<!-- Plugin SonarQube -->

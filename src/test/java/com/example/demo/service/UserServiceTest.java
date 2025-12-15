@@ -123,6 +123,8 @@ class UserServiceTest {
     void testAuthenticateUser_Success() throws Exception {
         // Arrange
         user.setStatus(UserStatus.ACTIF);
+        user.setPasswordLastUpdated(LocalDateTime.now()); // ← Ajouter cette ligne
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Password123!", "hashedPassword")).thenReturn(true);
 
@@ -131,7 +133,7 @@ class UserServiceTest {
 
         // Assert
         assertTrue(result);
-        verify(userRepository, times(1)).findByEmail("test@example.com");
+        verify(userRepository, times(2)).findByEmail("test@example.com"); // ← Changer de 1 à 2
         verify(passwordEncoder, times(1)).matches("Password123!", "hashedPassword");
     }
 

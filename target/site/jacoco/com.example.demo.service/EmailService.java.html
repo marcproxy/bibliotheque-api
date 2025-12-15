@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.service</a> &gt; <span class="el_source">EmailService.java</span></div><h1>EmailService.java</h1><pre class="source lang-java linenums">package com.example.demo.service;
+
+import com.example.demo.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+@Service
+<span class="fc" id="L11">public class EmailService implements IEmailService {</span>
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Value(&quot;${app.mail.from}&quot;)
+    private String fromEmail;
+
+    @Override
+    public void sendActivationEmail(User user) throws Exception {
+        try {
+<span class="nc" id="L22">            SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="nc" id="L23">            message.setFrom(fromEmail);</span>
+<span class="nc" id="L24">            message.setTo(user.getEmail());</span>
+<span class="nc" id="L25">            message.setSubject(&quot;Activation de votre compte - Bibliothèque&quot;);</span>
+
+<span class="nc" id="L27">            String emailBody = String.format(</span>
+                    &quot;Bonjour %s %s,\n\n&quot; +
+                            &quot;Merci de vous être inscrit(e) sur notre plateforme de gestion de bibliothèque.\n\n&quot; +
+                            &quot;Pour activer votre compte, veuillez cliquer sur le lien ci-dessous :\n&quot; +
+                            &quot;http://localhost:8080/api/users/activate?email=%s\n\n&quot; +
+                            &quot;Ou utilisez l'endpoint suivant avec votre email :\n&quot; +
+                            &quot;POST /api/users/activate\n&quot; +
+                            &quot;Body: {\&quot;email\&quot;: \&quot;%s\&quot;}\n\n&quot; +
+                            &quot;Si vous n'êtes pas à l'origine de cette inscription, veuillez ignorer cet email.\n\n&quot; +
+                            &quot;Cordialement,\n&quot; +
+                            &quot;L'équipe de la Bibliothèque&quot;,
+<span class="nc" id="L38">                    user.getFirstname(),</span>
+<span class="nc" id="L39">                    user.getLastname(),</span>
+<span class="nc" id="L40">                    user.getEmail(),</span>
+<span class="nc" id="L41">                    user.getEmail()</span>
+            );
+
+<span class="nc" id="L44">            message.setText(emailBody);</span>
+<span class="nc" id="L45">            mailSender.send(message);</span>
+
+<span class="nc" id="L47">            System.out.println(&quot;Email d'activation envoyé à : &quot; + user.getEmail());</span>
+<span class="nc" id="L48">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            System.err.println(&quot;Erreur lors de l'envoi de l'email d'activation : &quot; + e.getMessage());</span>
+<span class="nc" id="L50">            throw new Exception(&quot;Erreur lors de l'envoi de l'email d'activation&quot;);</span>
+<span class="nc" id="L51">        }</span>
+<span class="nc" id="L52">    }</span>
+
+    @Override
+    public void sendActivationConfirmationEmail(User user) throws Exception {
+        try {
+<span class="nc" id="L57">            SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="nc" id="L58">            message.setFrom(fromEmail);</span>
+<span class="nc" id="L59">            message.setTo(user.getEmail());</span>
+<span class="nc" id="L60">            message.setSubject(&quot;Votre compte a été activé - Bibliothèque&quot;);</span>
+
+<span class="nc" id="L62">            String emailBody = String.format(</span>
+                    &quot;Bonjour %s %s,\n\n&quot; +
+                            &quot;Félicitations ! Votre compte a été activé avec succès.\n\n&quot; +
+                            &quot;Vous pouvez maintenant vous connecter à notre plateforme de gestion de bibliothèque &quot; +
+                            &quot;et profiter de tous nos services.\n\n&quot; +
+                            &quot;Pour vous connecter, utilisez l'endpoint :\n&quot; +
+                            &quot;POST /api/users/login\n&quot; +
+                            &quot;Body: {\&quot;email\&quot;: \&quot;%s\&quot;, \&quot;password\&quot;: \&quot;votre_mot_de_passe\&quot;}\n\n&quot; +
+                            &quot;Nous vous souhaitons une excellente expérience sur notre plateforme.\n\n&quot; +
+                            &quot;Cordialement,\n&quot; +
+                            &quot;L'équipe de la Bibliothèque&quot;,
+<span class="nc" id="L73">                    user.getFirstname(),</span>
+<span class="nc" id="L74">                    user.getLastname(),</span>
+<span class="nc" id="L75">                    user.getEmail()</span>
+            );
+
+<span class="nc" id="L78">            message.setText(emailBody);</span>
+<span class="nc" id="L79">            mailSender.send(message);</span>
+
+<span class="nc" id="L81">            System.out.println(&quot;Email de confirmation d'activation envoyé à : &quot; + user.getEmail());</span>
+<span class="nc" id="L82">        } catch (Exception e) {</span>
+<span class="nc" id="L83">            System.err.println(&quot;Erreur lors de l'envoi de l'email de confirmation d'activation : &quot; + e.getMessage());</span>
+<span class="nc" id="L84">            throw new Exception(&quot;Erreur lors de l'envoi de l'email de confirmation&quot;);</span>
+<span class="nc" id="L85">        }</span>
+<span class="nc" id="L86">    }</span>
+
+    @Override
+    public void sendUnsubscribeConfirmationEmail(User user) throws Exception {
+        try {
+<span class="nc" id="L91">            SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="nc" id="L92">            message.setFrom(fromEmail);</span>
+<span class="nc" id="L93">            message.setTo(user.getEmail());</span>
+<span class="nc" id="L94">            message.setSubject(&quot;Confirmation de désinscription - Bibliothèque&quot;);</span>
+
+<span class="nc" id="L96">            String emailBody = String.format(</span>
+                    &quot;Bonjour %s %s,\n\n&quot; +
+                            &quot;Nous vous confirmons que votre compte a été supprimé avec succès.\n\n&quot; +
+                            &quot;Nous sommes désolés de vous voir partir et espérons vous revoir bientôt &quot; +
+                            &quot;sur notre plateforme de gestion de bibliothèque.\n\n&quot; +
+                            &quot;Si vous avez des questions ou des suggestions pour améliorer nos services, &quot; +
+                            &quot;n'hésitez pas à nous contacter.\n\n&quot; +
+                            &quot;Merci d'avoir utilisé nos services.\n\n&quot; +
+                            &quot;Cordialement,\n&quot; +
+                            &quot;L'équipe de la Bibliothèque&quot;,
+<span class="nc" id="L106">                    user.getFirstname(),</span>
+<span class="nc" id="L107">                    user.getLastname()</span>
+            );
+
+<span class="nc" id="L110">            message.setText(emailBody);</span>
+<span class="nc" id="L111">            mailSender.send(message);</span>
+
+<span class="nc" id="L113">            System.out.println(&quot;Email de confirmation de désinscription envoyé à : &quot; + user.getEmail());</span>
+<span class="nc" id="L114">        } catch (Exception e) {</span>
+<span class="nc" id="L115">            System.err.println(&quot;Erreur lors de l'envoi de l'email de désinscription : &quot; + e.getMessage());</span>
+<span class="nc" id="L116">            throw new Exception(&quot;Erreur lors de l'envoi de l'email de désinscription&quot;);</span>
+<span class="nc" id="L117">        }</span>
+<span class="nc" id="L118">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.service</a> &gt; <span class="el_source">UserService.java</span></div><h1>UserService.java</h1><pre class="source lang-java linenums">package com.example.demo.service;
+
+import com.example.demo.entity.PasswordHistory;
+import com.example.demo.entity.User;
+import com.example.demo.entity.UserStatus;
+import com.example.demo.repository.IPasswordHistoryRepository;
+import com.example.demo.repository.IUserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+<span class="fc" id="L17">public class UserService implements IUserService {</span>
+
+    @Autowired
+    private IUserRepository userRepository;
+
+    @Autowired
+    private IEmailService emailService;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private IPasswordHistoryRepository passwordHistoryRepository;
+
+    @Override
+    public void registerUser(User user) throws Exception {
+        // Vérifier si l'email existe déjà
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (userRepository.existsByEmail(user.getEmail())) {</span>
+<span class="nc" id="L35">            throw new Exception(&quot;Un compte avec cet email existe déjà&quot;);</span>
+        }
+
+        // Vérifier que la question de sécurité est valide
+<span class="nc bnc" id="L39" title="All 4 branches missed.">        if (user.getSecurityQuestion() == null || user.getSecurityQuestion().isEmpty()) {</span>
+<span class="nc" id="L40">            throw new Exception(&quot;Une question de sécurité est requise&quot;);</span>
+        }
+
+<span class="nc bnc" id="L43" title="All 4 branches missed.">        if (user.getSecurityAnswer() == null || user.getSecurityAnswer().isEmpty()) {</span>
+<span class="nc" id="L44">            throw new Exception(&quot;Une réponse à la question de sécurité est requise&quot;);</span>
+        }
+
+        // Vérifier la longueur de la réponse (max 32 caractères)
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (user.getSecurityAnswer().length() &gt; 32) {</span>
+<span class="nc" id="L49">            throw new Exception(&quot;La réponse à la question de sécurité ne doit pas dépasser 32 caractères&quot;);</span>
+        }
+
+        // Hacher le mot de passe avec BCrypt avant de l'enregistrer
+<span class="nc" id="L53">        String hashedPassword = passwordEncoder.encode(user.getPassword());</span>
+<span class="nc" id="L54">        user.setPassword(hashedPassword);</span>
+
+        // Hacher la réponse de sécurité avec BCrypt
+<span class="nc" id="L57">        String hashedAnswer = passwordEncoder.encode(user.getSecurityAnswer().toLowerCase().trim());</span>
+<span class="nc" id="L58">        user.setSecurityAnswer(hashedAnswer);</span>
+
+        // Définir le statut à INACTIF par défaut
+<span class="nc" id="L61">        user.setStatus(UserStatus.INACTIF);</span>
+
+        // Sauvegarder l'utilisateur
+<span class="nc" id="L64">        userRepository.save(user);</span>
+
+        // Envoyer l'email d'activation
+        try {
+<span class="nc" id="L68">            emailService.sendActivationEmail(user);</span>
+<span class="nc" id="L69">        } catch (Exception e) {</span>
+<span class="nc" id="L70">            System.err.println(&quot;Erreur lors de l'envoi de l'email d'activation : &quot; + e.getMessage());</span>
+            // On ne lance pas d'exception pour ne pas bloquer l'inscription
+<span class="nc" id="L72">        }</span>
+<span class="nc" id="L73">    }</span>
+
+    @Override
+    public void activateUser(String email) throws Exception {
+        // Rechercher l'utilisateur par email
+<span class="nc" id="L78">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L81">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L84">        User user = optionalUser.get();</span>
+
+        // Vérifier si le compte est déjà actif
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (user.getStatus() == UserStatus.ACTIF) {</span>
+<span class="nc" id="L88">            throw new Exception(&quot;Ce compte est déjà actif&quot;);</span>
+        }
+
+        // Activer le compte
+<span class="nc" id="L92">        user.setStatus(UserStatus.ACTIF);</span>
+<span class="nc" id="L93">        userRepository.save(user);</span>
+
+        // Envoyer l'email de confirmation d'activation
+        try {
+<span class="nc" id="L97">            emailService.sendActivationConfirmationEmail(user);</span>
+<span class="nc" id="L98">        } catch (Exception e) {</span>
+<span class="nc" id="L99">            System.err.println(&quot;Erreur lors de l'envoi de l'email de confirmation : &quot; + e.getMessage());</span>
+            // On ne lance pas d'exception pour ne pas bloquer l'activation
+<span class="nc" id="L101">        }</span>
+<span class="nc" id="L102">    }</span>
+
+    @Override
+    public boolean authenticateUser(String email, String password) throws Exception {
+        // Rechercher l'utilisateur par email uniquement
+<span class="nc" id="L107">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L110">            throw new Exception(&quot;Email ou mot de passe incorrect&quot;);</span>
+        }
+
+<span class="nc" id="L113">        User user = optionalUser.get();</span>
+
+        // Vérifier le mot de passe avec BCrypt
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (!passwordEncoder.matches(password, user.getPassword())) {</span>
+<span class="nc" id="L117">            throw new Exception(&quot;Email ou mot de passe incorrect&quot;);</span>
+        }
+
+        // Vérifier si le compte est actif
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (user.getStatus() == UserStatus.INACTIF) {</span>
+<span class="nc" id="L122">            throw new Exception(&quot;Votre compte n'est pas encore activé. Veuillez vérifier votre email&quot;);</span>
+        }
+
+        // Vérifier si le mot de passe est expiré
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (isPasswordExpired(email)) {</span>
+<span class="nc" id="L127">            throw new Exception(&quot;Votre mot de passe a expiré (plus de 12 semaines). Veuillez le renouveler via /api/users/&quot; + email + &quot;/password/renew&quot;);</span>
+        }
+
+<span class="nc" id="L130">        return true;</span>
+    }
+
+    @Override
+    public void unsubscribeUser(String email) throws Exception {
+        // Rechercher l'utilisateur par email
+<span class="nc" id="L136">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L139">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L142">        User user = optionalUser.get();</span>
+
+        // Envoyer l'email de confirmation de désinscription AVANT la suppression
+        try {
+<span class="nc" id="L146">            emailService.sendUnsubscribeConfirmationEmail(user);</span>
+<span class="nc" id="L147">        } catch (Exception e) {</span>
+<span class="nc" id="L148">            System.err.println(&quot;Erreur lors de l'envoi de l'email de désinscription : &quot; + e.getMessage());</span>
+            // On continue quand même avec la suppression
+<span class="nc" id="L150">        }</span>
+
+        // Supprimer l'utilisateur
+<span class="nc" id="L153">        userRepository.delete(user);</span>
+<span class="nc" id="L154">    }</span>
+
+    @Override
+    public User getUserByEmail(String email) throws Exception {
+<span class="nc" id="L158">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+<span class="nc" id="L159">        return optionalUser.orElse(null);</span>
+    }
+
+    @Override
+    public void updateProfile(String email, String firstname, String lastname) throws Exception {
+        // Rechercher l'utilisateur par email
+<span class="nc" id="L165">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L168">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L171">        User user = optionalUser.get();</span>
+
+        // Mettre à jour le prénom et le nom
+<span class="nc bnc" id="L174" title="All 4 branches missed.">        if (firstname != null &amp;&amp; !firstname.isEmpty()) {</span>
+<span class="nc" id="L175">            user.setFirstname(firstname);</span>
+        }
+<span class="nc bnc" id="L177" title="All 4 branches missed.">        if (lastname != null &amp;&amp; !lastname.isEmpty()) {</span>
+<span class="nc" id="L178">            user.setLastname(lastname);</span>
+        }
+
+        // Sauvegarder les modifications
+<span class="nc" id="L182">        userRepository.save(user);</span>
+<span class="nc" id="L183">    }</span>
+
+    @Override
+    public void updatePassword(String email, String oldPassword, String newPassword) throws Exception {
+        // Rechercher l'utilisateur par email
+<span class="nc" id="L188">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L191">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L194">        User user = optionalUser.get();</span>
+
+        // Vérifier que l'ancien mot de passe est correct avec BCrypt
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {</span>
+<span class="nc" id="L198">            throw new Exception(&quot;L'ancien mot de passe est incorrect&quot;);</span>
+        }
+
+        // Vérifier que le nouveau mot de passe n'est pas vide
+<span class="nc bnc" id="L202" title="All 4 branches missed.">        if (newPassword == null || newPassword.isEmpty()) {</span>
+<span class="nc" id="L203">            throw new Exception(&quot;Le nouveau mot de passe ne peut pas être vide&quot;);</span>
+        }
+
+        // Hacher le nouveau mot de passe avec BCrypt
+<span class="nc" id="L207">        String hashedPassword = passwordEncoder.encode(newPassword);</span>
+<span class="nc" id="L208">        user.setPassword(hashedPassword);</span>
+
+        // Sauvegarder les modifications
+<span class="nc" id="L211">        userRepository.save(user);</span>
+<span class="nc" id="L212">    }</span>
+
+    @Override
+    public void updateProfileById(Long id, String firstname, String lastname) throws Exception {
+        // Rechercher l'utilisateur par ID
+<span class="nc" id="L217">        Optional&lt;User&gt; optionalUser = userRepository.findById(id);</span>
+
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L220">            throw new Exception(&quot;Aucun compte trouvé avec cet ID&quot;);</span>
+        }
+
+<span class="nc" id="L223">        User user = optionalUser.get();</span>
+
+        // Mettre à jour le prénom et le nom
+<span class="nc bnc" id="L226" title="All 4 branches missed.">        if (firstname != null &amp;&amp; !firstname.isEmpty()) {</span>
+<span class="nc" id="L227">            user.setFirstname(firstname);</span>
+        }
+<span class="nc bnc" id="L229" title="All 4 branches missed.">        if (lastname != null &amp;&amp; !lastname.isEmpty()) {</span>
+<span class="nc" id="L230">            user.setLastname(lastname);</span>
+        }
+
+        // Sauvegarder les modifications
+<span class="nc" id="L234">        userRepository.save(user);</span>
+<span class="nc" id="L235">    }</span>
+
+    @Override
+    public void updatePasswordById(Long id, String oldPassword, String newPassword) throws Exception {
+        // Rechercher l'utilisateur par ID
+<span class="nc" id="L240">        Optional&lt;User&gt; optionalUser = userRepository.findById(id);</span>
+
+<span class="nc bnc" id="L242" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L243">            throw new Exception(&quot;Aucun compte trouvé avec cet ID&quot;);</span>
+        }
+
+<span class="nc" id="L246">        User user = optionalUser.get();</span>
+
+        // Vérifier que l'ancien mot de passe est correct avec BCrypt
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {</span>
+<span class="nc" id="L250">            throw new Exception(&quot;L'ancien mot de passe est incorrect&quot;);</span>
+        }
+
+        // Vérifier que le nouveau mot de passe n'est pas vide
+<span class="nc bnc" id="L254" title="All 4 branches missed.">        if (newPassword == null || newPassword.isEmpty()) {</span>
+<span class="nc" id="L255">            throw new Exception(&quot;Le nouveau mot de passe ne peut pas être vide&quot;);</span>
+        }
+
+        // Hacher le nouveau mot de passe avec BCrypt
+<span class="nc" id="L259">        String hashedPassword = passwordEncoder.encode(newPassword);</span>
+<span class="nc" id="L260">        user.setPassword(hashedPassword);</span>
+
+        // Sauvegarder les modifications
+<span class="nc" id="L263">        userRepository.save(user);</span>
+<span class="nc" id="L264">    }</span>
+
+    @Override
+    public String getSecurityQuestion(String email) throws Exception {
+<span class="nc" id="L268">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L271">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L274">        User user = optionalUser.get();</span>
+
+<span class="nc bnc" id="L276" title="All 4 branches missed.">        if (user.getSecurityQuestion() == null || user.getSecurityQuestion().isEmpty()) {</span>
+<span class="nc" id="L277">            throw new Exception(&quot;Aucune question de sécurité n'est définie pour ce compte&quot;);</span>
+        }
+
+<span class="nc" id="L280">        return user.getSecurityQuestion();</span>
+    }
+
+    @Override
+    public boolean verifySecurityAnswer(String email, String answer) throws Exception {
+<span class="nc" id="L285">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L287" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L288">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L291">        User user = optionalUser.get();</span>
+
+<span class="nc bnc" id="L293" title="All 4 branches missed.">        if (user.getSecurityAnswer() == null || user.getSecurityAnswer().isEmpty()) {</span>
+<span class="nc" id="L294">            throw new Exception(&quot;Aucune réponse de sécurité n'est définie pour ce compte&quot;);</span>
+        }
+
+        // Vérifier la réponse avec BCrypt (en minuscules et sans espaces)
+<span class="nc" id="L298">        return passwordEncoder.matches(answer.toLowerCase().trim(), user.getSecurityAnswer());</span>
+    }
+
+    @Override
+    public void renewPassword(String email, String oldPassword, String newPassword) throws Exception {
+        // Rechercher l'utilisateur
+<span class="nc" id="L304">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L307">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L310">        User user = optionalUser.get();</span>
+
+        // Vérifier que l'ancien mot de passe est correct
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {</span>
+<span class="nc" id="L314">            throw new Exception(&quot;L'ancien mot de passe est incorrect&quot;);</span>
+        }
+
+        // Vérifier que le nouveau mot de passe n'est pas vide
+<span class="nc bnc" id="L318" title="All 4 branches missed.">        if (newPassword == null || newPassword.isEmpty()) {</span>
+<span class="nc" id="L319">            throw new Exception(&quot;Le nouveau mot de passe ne peut pas être vide&quot;);</span>
+        }
+
+        // Récupérer les 5 derniers mots de passe de l'historique
+<span class="nc" id="L323">        List&lt;PasswordHistory&gt; history = passwordHistoryRepository</span>
+<span class="nc" id="L324">                .findTopNByUserIdOrderByChangedAtDesc(user.getId());</span>
+
+        // Limiter à 5 entrées maximum
+<span class="nc" id="L327">        int limit = Math.min(5, history.size());</span>
+<span class="nc" id="L328">        List&lt;PasswordHistory&gt; last5 = history.subList(0, limit);</span>
+
+        // Vérifier que le nouveau mot de passe n'est pas dans les 5 derniers
+<span class="nc bnc" id="L331" title="All 2 branches missed.">        for (PasswordHistory ph : last5) {</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">            if (passwordEncoder.matches(newPassword, ph.getHashedPassword())) {</span>
+<span class="nc" id="L333">                throw new Exception(&quot;Vous ne pouvez pas réutiliser l'un de vos 5 derniers mots de passe&quot;);</span>
+            }
+<span class="nc" id="L335">        }</span>
+
+        // Sauvegarder l'ancien mot de passe dans l'historique
+<span class="nc" id="L338">        PasswordHistory oldPasswordEntry = new PasswordHistory();</span>
+<span class="nc" id="L339">        oldPasswordEntry.setUser(user);</span>
+<span class="nc" id="L340">        oldPasswordEntry.setHashedPassword(user.getPassword());</span>
+<span class="nc" id="L341">        oldPasswordEntry.setChangedAt(LocalDateTime.now());</span>
+<span class="nc" id="L342">        passwordHistoryRepository.save(oldPasswordEntry);</span>
+
+        // Nettoyer l'historique si &gt; 5 entrées
+<span class="nc" id="L345">        List&lt;PasswordHistory&gt; allHistory = passwordHistoryRepository</span>
+<span class="nc" id="L346">                .findTopNByUserIdOrderByChangedAtDesc(user.getId());</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">        if (allHistory.size() &gt; 5) {</span>
+            // Garder seulement les 5 plus récents
+<span class="nc bnc" id="L349" title="All 2 branches missed.">            for (int i = 5; i &lt; allHistory.size(); i++) {</span>
+<span class="nc" id="L350">                passwordHistoryRepository.delete(allHistory.get(i));</span>
+            }
+        }
+
+        // Hacher et mettre à jour le nouveau mot de passe
+<span class="nc" id="L355">        String hashedPassword = passwordEncoder.encode(newPassword);</span>
+<span class="nc" id="L356">        user.setPassword(hashedPassword);</span>
+<span class="nc" id="L357">        user.setPasswordLastUpdated(LocalDateTime.now());</span>
+
+<span class="nc" id="L359">        userRepository.save(user);</span>
+<span class="nc" id="L360">    }</span>
+
+    @Override
+    public boolean isPasswordExpired(String email) throws Exception {
+<span class="nc" id="L364">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(email);</span>
+
+<span class="nc bnc" id="L366" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L367">            throw new Exception(&quot;Aucun compte trouvé avec cet email&quot;);</span>
+        }
+
+<span class="nc" id="L370">        User user = optionalUser.get();</span>
+
+        // Si la date n'est pas définie, considérer comme expiré
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (user.getPasswordLastUpdated() == null) {</span>
+<span class="nc" id="L374">            return true;</span>
+        }
+
+        // Calculer la différence en semaines (12 semaines = 84 jours)
+<span class="nc" id="L378">        LocalDateTime expirationDate = user.getPasswordLastUpdated().plusWeeks(12);</span>
+<span class="nc" id="L379">        return LocalDateTime.now().isAfter(expirationDate);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

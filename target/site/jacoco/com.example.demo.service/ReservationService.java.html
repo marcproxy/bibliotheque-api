@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.service</a> &gt; <span class="el_source">ReservationService.java</span></div><h1>ReservationService.java</h1><pre class="source lang-java linenums">package com.example.demo.service;
+
+import com.example.demo.entity.Book;
+import com.example.demo.entity.Reservation;
+import com.example.demo.entity.ReservationStatus;
+import com.example.demo.entity.User;
+import com.example.demo.repository.IBookRepository;
+import com.example.demo.repository.IReservationRepository;
+import com.example.demo.repository.IUserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+<span class="fc" id="L18">public class ReservationService implements IReservationService {</span>
+
+    @Autowired
+    private IReservationRepository reservationRepository;
+
+    @Autowired
+    private IUserRepository userRepository;
+
+    @Autowired
+    private IBookRepository bookRepository;
+
+    @Override
+    public void createReservation(String userEmail, Long bookId) throws Exception {
+        // Vérifier que l'utilisateur existe
+<span class="nc" id="L32">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(userEmail);</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L34">            throw new Exception(&quot;Utilisateur non trouvé&quot;);</span>
+        }
+
+        // Vérifier que le livre existe
+<span class="nc" id="L38">        Optional&lt;Book&gt; optionalBook = bookRepository.findById(bookId);</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (optionalBook.isEmpty()) {</span>
+<span class="nc" id="L40">            throw new Exception(&quot;Livre non trouvé&quot;);</span>
+        }
+
+<span class="nc" id="L43">        User user = optionalUser.get();</span>
+<span class="nc" id="L44">        Book book = optionalBook.get();</span>
+
+        // Vérifier si l'utilisateur a déjà une réservation en cours pour ce livre
+<span class="nc" id="L47">        Optional&lt;Reservation&gt; existingReservation = reservationRepository</span>
+<span class="nc" id="L48">                .findByUserIdAndBookIdAndStatus(user.getId(), bookId, ReservationStatus.EN_COURS);</span>
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (existingReservation.isPresent()) {</span>
+<span class="nc" id="L51">            throw new Exception(&quot;Vous avez déjà réservé ce livre&quot;);</span>
+        }
+
+        // Vérifier si le livre est disponible (pas de réservation en cours)
+<span class="nc" id="L55">        List&lt;Reservation&gt; activeReservations = reservationRepository</span>
+<span class="nc" id="L56">                .findByBookIdAndStatus(bookId, ReservationStatus.EN_COURS);</span>
+
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (!activeReservations.isEmpty()) {</span>
+<span class="nc" id="L59">            throw new Exception(&quot;Ce livre est déjà réservé par un autre utilisateur&quot;);</span>
+        }
+
+        // Créer la réservation
+<span class="nc" id="L63">        Reservation reservation = new Reservation();</span>
+<span class="nc" id="L64">        reservation.setUser(user);</span>
+<span class="nc" id="L65">        reservation.setBook(book);</span>
+<span class="nc" id="L66">        reservation.setStatus(ReservationStatus.EN_COURS);</span>
+<span class="nc" id="L67">        reservation.setReservationDate(LocalDateTime.now());</span>
+
+<span class="nc" id="L69">        reservationRepository.save(reservation);</span>
+<span class="nc" id="L70">    }</span>
+
+    @Override
+    public void reserveBook(Long bookId, String userEmail) throws Exception {
+        // Vérifier que l'utilisateur existe
+<span class="nc" id="L75">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(userEmail);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L77">            throw new Exception(&quot;Utilisateur non trouvé&quot;);</span>
+        }
+
+        // Vérifier que le livre existe
+<span class="nc" id="L81">        Optional&lt;Book&gt; optionalBook = bookRepository.findById(bookId);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (optionalBook.isEmpty()) {</span>
+<span class="nc" id="L83">            throw new Exception(&quot;Livre non trouvé&quot;);</span>
+        }
+
+<span class="nc" id="L86">        User user = optionalUser.get();</span>
+<span class="nc" id="L87">        Book book = optionalBook.get();</span>
+
+        // Règle 1 : Vérifier le stock disponible
+<span class="nc bnc" id="L90" title="All 4 branches missed.">        if (book.getStock() == null || book.getStock() &lt;= 0) {</span>
+<span class="nc" id="L91">            throw new Exception(&quot;Ce livre n'est plus disponible en stock&quot;);</span>
+        }
+
+        // Règle 2 : Vérifier si l'utilisateur a déjà réservé ce livre (pas de doublons)
+<span class="nc" id="L95">        Optional&lt;Reservation&gt; existingReservation = reservationRepository</span>
+<span class="nc" id="L96">                .findByUserIdAndBookIdAndStatus(user.getId(), bookId, ReservationStatus.EN_COURS);</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (existingReservation.isPresent()) {</span>
+<span class="nc" id="L99">            throw new Exception(&quot;Vous avez déjà réservé ce livre&quot;);</span>
+        }
+
+        // Règle 3 : Vérifier que l'utilisateur n'a pas déjà 3 livres réservés
+<span class="nc" id="L103">        List&lt;Reservation&gt; userActiveReservations = reservationRepository</span>
+<span class="nc" id="L104">                .findByUserIdAndStatus(user.getId(), ReservationStatus.EN_COURS);</span>
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (userActiveReservations.size() &gt;= 3) {</span>
+<span class="nc" id="L107">            throw new Exception(&quot;Vous avez atteint la limite de 3 livres réservés simultanément&quot;);</span>
+        }
+
+        // Créer la réservation
+<span class="nc" id="L111">        Reservation reservation = new Reservation();</span>
+<span class="nc" id="L112">        reservation.setUser(user);</span>
+<span class="nc" id="L113">        reservation.setBook(book);</span>
+<span class="nc" id="L114">        reservation.setStatus(ReservationStatus.EN_COURS);</span>
+<span class="nc" id="L115">        reservation.setReservationDate(LocalDateTime.now());</span>
+
+        // Décrémenter le stock
+<span class="nc" id="L118">        book.setStock(book.getStock() - 1);</span>
+<span class="nc" id="L119">        bookRepository.save(book);</span>
+
+<span class="nc" id="L121">        reservationRepository.save(reservation);</span>
+<span class="nc" id="L122">    }</span>
+
+    @Override
+    public void returnBook(Long reservationId) throws Exception {
+<span class="nc" id="L126">        Optional&lt;Reservation&gt; optionalReservation = reservationRepository.findById(reservationId);</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (optionalReservation.isEmpty()) {</span>
+<span class="nc" id="L129">            throw new Exception(&quot;Réservation non trouvée&quot;);</span>
+        }
+
+<span class="nc" id="L132">        Reservation reservation = optionalReservation.get();</span>
+
+        // Vérifier que la réservation est en cours
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (reservation.getStatus() != ReservationStatus.EN_COURS) {</span>
+<span class="nc" id="L136">            throw new Exception(&quot;Cette réservation n'est pas en cours&quot;);</span>
+        }
+
+        // Marquer le livre comme retourné
+<span class="nc" id="L140">        reservation.setStatus(ReservationStatus.RETOURNE);</span>
+
+        // Remettre le livre en stock
+<span class="nc" id="L143">        Book book = reservation.getBook();</span>
+<span class="nc" id="L144">        book.setStock(book.getStock() + 1);</span>
+<span class="nc" id="L145">        bookRepository.save(book);</span>
+
+<span class="nc" id="L147">        reservationRepository.save(reservation);</span>
+<span class="nc" id="L148">    }</span>
+
+    @Override
+    public void cancelReservation(Long reservationId) throws Exception {
+<span class="nc" id="L152">        Optional&lt;Reservation&gt; optionalReservation = reservationRepository.findById(reservationId);</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (optionalReservation.isEmpty()) {</span>
+<span class="nc" id="L155">            throw new Exception(&quot;Réservation non trouvée&quot;);</span>
+        }
+
+<span class="nc" id="L158">        Reservation reservation = optionalReservation.get();</span>
+
+        // Vérifier que la réservation est en cours
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (reservation.getStatus() != ReservationStatus.EN_COURS) {</span>
+<span class="nc" id="L162">            throw new Exception(&quot;Cette réservation ne peut pas être annulée&quot;);</span>
+        }
+
+        // Annuler la réservation
+<span class="nc" id="L166">        reservation.setStatus(ReservationStatus.ANNULEE);</span>
+
+        // Remettre le livre en stock
+<span class="nc" id="L169">        Book book = reservation.getBook();</span>
+<span class="nc" id="L170">        book.setStock(book.getStock() + 1);</span>
+<span class="nc" id="L171">        bookRepository.save(book);</span>
+
+<span class="nc" id="L173">        reservationRepository.save(reservation);</span>
+<span class="nc" id="L174">    }</span>
+
+    @Override
+    public List&lt;Reservation&gt; getUserReservations(String userEmail) throws Exception {
+<span class="nc" id="L178">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(userEmail);</span>
+
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L181">            throw new Exception(&quot;Utilisateur non trouvé&quot;);</span>
+        }
+
+<span class="nc" id="L184">        return reservationRepository.findByUserId(optionalUser.get().getId());</span>
+    }
+
+    @Override
+    public List&lt;Reservation&gt; getUserActiveReservations(String userEmail) throws Exception {
+<span class="nc" id="L189">        Optional&lt;User&gt; optionalUser = userRepository.findByEmail(userEmail);</span>
+
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        if (optionalUser.isEmpty()) {</span>
+<span class="nc" id="L192">            throw new Exception(&quot;Utilisateur non trouvé&quot;);</span>
+        }
+
+<span class="nc" id="L195">        return reservationRepository.findByUserIdAndStatus(</span>
+<span class="nc" id="L196">                optionalUser.get().getId(),</span>
+                ReservationStatus.EN_COURS
+        );
+    }
+
+    @Override
+    public List&lt;Reservation&gt; getBookReservations(Long bookId) throws Exception {
+        // Vérifier que le livre existe
+<span class="nc" id="L204">        Optional&lt;Book&gt; optionalBook = bookRepository.findById(bookId);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (optionalBook.isEmpty()) {</span>
+<span class="nc" id="L206">            throw new Exception(&quot;Livre non trouvé&quot;);</span>
+        }
+
+<span class="nc" id="L209">        return reservationRepository.findByBookId(bookId);</span>
+    }
+
+    @Override
+    public List&lt;Reservation&gt; getAllReservations() throws Exception {
+<span class="nc" id="L214">        return reservationRepository.findAll();</span>
+    }
+
+    @Override
+    public boolean isBookAvailable(Long bookId) throws Exception {
+        // Vérifier que le livre existe
+<span class="nc" id="L220">        Optional&lt;Book&gt; optionalBook = bookRepository.findById(bookId);</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        if (optionalBook.isEmpty()) {</span>
+<span class="nc" id="L222">            throw new Exception(&quot;Livre non trouvé&quot;);</span>
+        }
+
+        // Vérifier s'il y a des réservations en cours
+<span class="nc" id="L226">        List&lt;Reservation&gt; activeReservations = reservationRepository</span>
+<span class="nc" id="L227">                .findByBookIdAndStatus(bookId, ReservationStatus.EN_COURS);</span>
+
+<span class="nc" id="L229">        return activeReservations.isEmpty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

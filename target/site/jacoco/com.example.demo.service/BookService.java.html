@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BookService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.service</a> &gt; <span class="el_source">BookService.java</span></div><h1>BookService.java</h1><pre class="source lang-java linenums">package com.example.demo.service;
+
+import com.example.demo.entity.Book;
+import com.example.demo.repository.IBookRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+<span class="fc" id="L13">public class BookService implements IBookService {</span>
+
+    @Autowired
+    private IBookRepository bookRepository;
+
+    @Override
+    public void createBook(Book book) throws Exception {
+<span class="nc" id="L20">        bookRepository.save(book);</span>
+<span class="nc" id="L21">    }</span>
+
+    @Override
+    public List&lt;Book&gt; getUnpublishedBooks() throws Exception {
+<span class="nc" id="L25">        return bookRepository.findByPublishedFalse();</span>
+    }
+
+    @Override
+    public Book getBookById(Long id) throws Exception {
+<span class="nc" id="L30">        Optional&lt;Book&gt; optional = bookRepository.findById(id);</span>
+<span class="nc" id="L31">        return optional.orElse(null);</span>
+    }
+
+    @Override
+    public List&lt;Book&gt; getAllBooks() throws Exception {
+<span class="nc" id="L36">        return bookRepository.findAll();</span>
+    }
+
+    @Override
+    public List&lt;Book&gt; getPublishedBooks() throws Exception {
+<span class="nc" id="L41">        return bookRepository.findByPublishedTrue();</span>
+    }
+
+    @Override
+    public Book getBookByTitle(String title) throws Exception {
+<span class="nc" id="L46">        Optional&lt;Book&gt; optional = bookRepository.findByTitle(title);</span>
+<span class="nc" id="L47">        return optional.orElse(null);</span>
+    }
+
+    @Override
+    public List&lt;Book&gt; getBooksByTitleContaining(String keyword) throws Exception {
+<span class="nc" id="L52">        return bookRepository.findByTitleContainingIgnoreCase(keyword);</span>
+    }
+
+    @Override
+    public Book getBookByIsbn(String isbn) throws Exception {
+<span class="nc" id="L57">        Optional&lt;Book&gt; optional = bookRepository.findByIsbn(isbn);</span>
+<span class="nc" id="L58">        return optional.orElse(null);</span>
+    }
+
+    @Override
+    public List&lt;Book&gt; getBooksByTitleOrDescriptionContaining(String searchText) throws Exception {
+<span class="nc" id="L63">        return bookRepository.findByTitleOrDescriptionContaining(searchText);</span>
+    }
+
+    @Override
+    public List&lt;Book&gt; getBooksByPublicationDateBetween(Date startDate, Date endDate) throws Exception {
+<span class="nc" id="L68">        return bookRepository.findByPublicationDateBetween(startDate, endDate);</span>
+    }
+
+    @Override
+    public void updateBook(Long id, Book book) throws Exception {
+<span class="nc" id="L73">        Optional&lt;Book&gt; optional = bookRepository.findById(id);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (optional.isPresent()) {</span>
+<span class="nc" id="L75">            Book existingBook = optional.get();</span>
+<span class="nc" id="L76">            existingBook.setTitle(book.getTitle());</span>
+<span class="nc" id="L77">            existingBook.setDescription(book.getDescription());</span>
+<span class="nc" id="L78">            existingBook.setPublished(book.isPublished());</span>
+<span class="nc" id="L79">            existingBook.setEditor(book.getEditor());</span>
+<span class="nc" id="L80">            existingBook.setPublicationDate(book.getPublicationDate());</span>
+<span class="nc" id="L81">            existingBook.setIsbn(book.getIsbn());</span>
+<span class="nc" id="L82">            existingBook.setNbPages(book.getNbPages());</span>
+<span class="nc" id="L83">            existingBook.setCategory(book.getCategory());</span>
+<span class="nc" id="L84">            existingBook.setLanguage(book.getLanguage());</span>
+<span class="nc" id="L85">            existingBook.setAuthor(book.getAuthor());</span>
+<span class="nc" id="L86">            bookRepository.save(existingBook);</span>
+<span class="nc" id="L87">        } else {</span>
+<span class="nc" id="L88">            throw new Exception(&quot;Book not found with id: &quot; + id);</span>
+        }
+<span class="nc" id="L90">    }</span>
+
+    @Override
+    public void deleteBook(Long id) throws Exception {
+<span class="nc" id="L94">        bookRepository.deleteById(id);</span>
+<span class="nc" id="L95">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

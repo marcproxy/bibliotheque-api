@@ -112,6 +112,14 @@
 							<goal>check</goal>
 						</goals>
 						<configuration>
+							<excludes>
+								<!-- Exclure les entités -->
+								<exclude>**/entity/**</exclude>
+								<!-- Exclure les configurations -->
+								<exclude>**/config/**</exclude>
+								<!-- Exclure la classe principale -->
+								<exclude>**/DemoApplication.class</exclude>
+							</excludes>
 							<rules>
 								<rule>
 									<element>PACKAGE</element>
@@ -130,18 +138,10 @@
 								</rule>
 							</rules>
 						</configuration>
+
 					</execution>
 				</executions>
-				<configuration>
-					<excludes>
-						<!-- Exclure les entités (juste des getters/setters) -->
-						<exclude>**/entity/**</exclude>
-						<!-- Exclure la classe principale -->
-						<exclude>**/DemoApplication.class</exclude>
-						<!-- Exclure les configurations -->
-						<exclude>**/config/**</exclude>
-					</excludes>
-				</configuration>
+
 			</plugin>
 
 			<!-- Plugin SonarQube -->
